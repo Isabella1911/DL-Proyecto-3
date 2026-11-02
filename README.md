@@ -2,6 +2,8 @@
 
 Proyecto 3 de CC3092 Deep Learning y Sistemas Inteligentes.
 
+**¿Primera vez? Ver la [guía de uso](GUIA_DE_USO.md)**: instalación, app, evaluación y reentrenamiento paso a paso.
+
 Contadores y pequeñas empresas en Guatemala reciben facturas FEL como fotos (WhatsApp) o en papel y las digitan a mano. FacturaFEL recibe la foto y devuelve **NIT del emisor y del receptor, fecha, serie, número de DTE, número de autorización, IVA y total**, valida los datos con reglas de la FEL y los exporta a Excel. Las facturas que no pasan las validaciones se marcan para revisión humana.
 
 ## Pipeline
