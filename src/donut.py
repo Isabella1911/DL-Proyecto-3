@@ -6,6 +6,12 @@ que aquí se convierte en un dict con los campos de src/schema.py. Además de lo
 devuelve la confianza de cada campo (la probabilidad mínima de sus tokens), que se usa para
 marcar campos dudosos y mandarlos a revisión humana.
 
+Con decodificación restringida (DONUT_CONSTRAINED=1), mientras el modelo escribe
+un campo solo puede elegir tokens que mantengan el formato válido de ese campo: el número de
+autorización solo con hexadecimal en grupos 8-4-4-4-12, la fecha AAAA-MM-DD, los montos con
+dos decimales, etc. Así una "I" leída en lugar de "1" se convierte en el carácter válido más
+probable, y nunca sale un valor con formato imposible.
+
 Entrenamiento: train/train_donut.py.
 """
 
@@ -18,6 +24,7 @@ from . import config
 from .schema import FIELDS
 
 TASK_TOKEN = "<s_fel>"
+HEX = "0123456789ABCDEF"
 FIELD_TOKENS = [t for f in FIELDS for t in (f"<s_{f}>", f"</s_{f}>")]
 MAX_LENGTH = 160
 
@@ -36,6 +43,94 @@ def from_sequence(seq: str) -> dict:
     return out
 
 
+# Formato de cada campo: (prefijo válido, valor completo). nombre_emisor no se restringe.
+# Las plantillas usan H = hexadecimal y D = dígito.
+FORMATS = {
+    "numero_autorizacion": ("tmpl", "HHHHHHHH-HHHH-HHHH-HHHH-HHHHHHHHHHHH"),
+    "serie": ("tmpl", "HHHHHHHH"),
+    "fecha": ("tmpl", "DDDD-DD-DD"),
+    "numero_dte": ("re", r"\d{0,10}", r"\d{1,10}"),
+    "total": ("re", r"\d{0,7}(\.\d{0,2})?", r"\d{1,7}\.\d{2}"),
+    "iva": ("re", r"\d{0,7}(\.\d{0,2})?", r"(\d{1,7}\.\d{2})?"),
+    "nit_emisor": ("re", r"\d{0,12}(-[\dK]?)?", r"\d{1,12}-[\dK]"),
+    "nit_receptor": ("re", r"\d{0,12}(-[\dK]?)?|C|CF", r"\d{1,12}-[\dK]|CF"),
+}
+_CHARSET = {"numero_autorizacion": HEX + "-", "serie": HEX, "fecha": "0123456789-",
+            "numero_dte": "0123456789", "total": "0123456789.", "iva": "0123456789.",
+            "nit_emisor": "0123456789-K", "nit_receptor": "0123456789-KCF"}
+
+
+def _tmpl_ok(t: str, s: str) -> bool:
+    if len(s) > len(t):
+        return False
+    for c, k in zip(s, t):
+        if (k == "H" and c not in HEX) or (k == "D" and not c.isdigit()) or (k not in "HD" and c != k):
+            return False
+    return True
+
+
+def prefix_ok(field: str, s: str) -> bool:
+    f = FORMATS[field]
+    return _tmpl_ok(f[1], s) if f[0] == "tmpl" else re.fullmatch(f[1], s) is not None
+
+
+def complete_ok(field: str, s: str) -> bool:
+    f = FORMATS[field]
+    return (len(s) == len(f[1]) and _tmpl_ok(f[1], s)) if f[0] == "tmpl" else re.fullmatch(f[2], s) is not None
+
+
+class FieldFormatProcessor:
+    """LogitsProcessor que solo deja pasar tokens que mantienen el formato del campo actual."""
+
+    def __init__(self, tok, open_ids: dict, close_ids: dict):
+        self.open_ids, self.close_by_field = open_ids, close_ids
+        self.close_set = set(close_ids.values())
+        pieces = tok.convert_ids_to_tokens(list(range(len(tok))))
+        self.text = [p.replace("\u2581", " ") if isinstance(p, str) else "" for p in pieces]
+        # Candidatos por campo: tokens hechos solo de caracteres permitidos (con espacio inicial opcional)
+        self.cands = {}
+        for field, chars in _CHARSET.items():
+            ok = set(chars)
+            self.cands[field] = [i for i, t in enumerate(self.text)
+                                 if t.lstrip(" ") and len(t) - len(t.lstrip(" ")) <= 1 and set(t.lstrip(" ")) <= ok]
+
+    def _state(self, ids):
+        for k in range(len(ids) - 1, -1, -1):
+            tid = ids[k]
+            if tid in self.close_set:
+                return None, None
+            if tid in self.open_ids:
+                field = self.open_ids[tid]
+                return field, "".join(self.text[t] for t in ids[k + 1:]).lstrip(" ")
+        return None, None
+
+    def __call__(self, input_ids, scores):
+        import torch
+
+        for b, row in enumerate(input_ids.tolist()):
+            field, cur = self._state(row)
+            if field not in FORMATS:
+                continue
+            allowed = []
+            for tid in self.cands[field]:
+                t = self.text[tid]
+                if t.startswith(" "):
+                    if cur:
+                        continue
+                    t = t[1:]
+                if prefix_ok(field, cur + t):
+                    allowed.append(tid)
+            if complete_ok(field, cur):
+                allowed.append(self.close_by_field[field])
+            if not allowed:  # no debería pasar; mejor no restringir que bloquear la salida
+                continue
+            idx = torch.tensor(allowed, device=scores.device)
+            keep = scores[b, idx].clone()
+            scores[b] = float("-inf")
+            scores[b, idx] = keep
+        return scores
+
+
 @dataclass
 class DonutOutput:
     fields: dict
@@ -45,7 +140,8 @@ class DonutOutput:
 
 
 class DonutFEL:
-    def __init__(self, model_dir: str | Path | None = None, device: str | None = None):
+    def __init__(self, model_dir: str | Path | None = None, device: str | None = None,
+                 constrained: bool | None = None):
         import torch
         from transformers import DonutProcessor, VisionEncoderDecoderModel
 
@@ -64,6 +160,11 @@ class DonutFEL:
         self.open_ids = {tok.convert_tokens_to_ids(f"<s_{f}>"): f for f in FIELDS}
         self.close_ids = {tok.convert_tokens_to_ids(f"</s_{f}>") for f in FIELDS}
         self.name = model_dir.name
+        self.constrained = config.DONUT_CONSTRAINED if constrained is None else constrained
+        self.format_proc = None
+        if self.constrained:
+            self.format_proc = FieldFormatProcessor(
+                tok, self.open_ids, {f: tok.convert_tokens_to_ids(f"</s_{f}>") for f in FIELDS})
 
     def predict_images(self, images: list) -> list[DonutOutput]:
         """images: lista de PIL.Image en RGB."""
@@ -72,11 +173,17 @@ class DonutFEL:
         pix = self.processor(images, return_tensors="pt").pixel_values.to(self.device, self.model.dtype)
         start = torch.full((len(images), 1), self.start_id, device=self.device)
         tok = self.processor.tokenizer
+        extra = {}
+        if getattr(self, "format_proc", None) is not None:
+            from transformers import LogitsProcessorList
+
+            extra["logits_processor"] = LogitsProcessorList([self.format_proc])
         with torch.inference_mode():
             out = self.model.generate(
                 pix, decoder_input_ids=start, max_length=MAX_LENGTH, num_beams=1, do_sample=False,
                 pad_token_id=tok.pad_token_id, eos_token_id=tok.eos_token_id,
-                bad_words_ids=[[tok.unk_token_id]], output_scores=True, return_dict_in_generate=True)
+                bad_words_ids=[[tok.unk_token_id]], output_scores=True, return_dict_in_generate=True,
+                **extra)
         latency = (time.perf_counter() - t0) / len(images)
         # Probabilidad del token elegido en cada paso: (batch, pasos)
         probs = torch.stack([s.float().softmax(-1) for s in out.scores], 1)

@@ -37,19 +37,20 @@ def load_records(a):
     if a.synth:
         d = Path(a.synth)
         recs = [json.loads(line) for line in (d / "metadata.jsonl").open(encoding="utf-8")]
-        return [(d / r["file"], r["gt"], r["file"]) for r in recs], f"{d.parent.name}_{d.name}"
+        return ([(d / r["file"], {**r["gt"], "_formato": r["meta"]["layout"]}, r["file"]) for r in recs],
+                f"{d.parent.name}_{d.name}")
     df = pd.read_csv(a.gt, dtype=str, keep_default_na=False)
     df = df[(df["split"] == a.split) & ~df["notas"].str.contains("borrar esta fila", na=False)]
     base = Path(a.gt).parent
     return [(base / r["archivo_imagen"], r.to_dict(), r["id"]) for _, r in df.iterrows()], f"real_{a.split}"
 
 
-def predict(records, cache: Path, model_dir: Path):
+def predict(records, cache: Path, model_dir: Path, constrained: bool):
     if cache.exists():
         return json.loads(cache.read_text(encoding="utf-8"))
     from src.donut import DonutFEL
 
-    model = DonutFEL(model_dir)
+    model = DonutFEL(model_dir, constrained=constrained)
     preds = []
     for i in range(0, len(records), 8):
         chunk = records[i:i + 8]
@@ -83,19 +84,34 @@ def value_per_1000(rows, t, cost_mult=1.0, wage_mult=1.0, manual_mult=1.0):
 def main(a):
     records, name = load_records(a)
     model_dir = Path(a.model or config.DONUT_MODEL_DIR)
-    out = ROOT / "results" / f"umbral_{model_dir.name}_{name}"
+    suffix = "_restringido" if a.constrained else ""
+    out = ROOT / "results" / f"umbral_{model_dir.name}{suffix}_{name}"
     out.mkdir(parents=True, exist_ok=True)
-    preds = predict(records, out / "predicciones.json", model_dir)
+    preds = predict(records, out / "predicciones.json", model_dir, a.constrained)
 
-    rows = []
+    rows, scores = [], []
     for (_, gt, _), p in zip(records, preds):
         fields, _ = _clean(p["fields"])  # misma normalización y autocorrección que la app
         sc = score_record(fields, gt)
+        scores.append((gt.get("_formato", "real"), sc))
         rows.append({
             "falla_validacion": needs_review(validate(fields)),
             "conf_min": min(p["confidence"][f] for f in EVAL_FIELDS),
             "costo_errores": sum(ERROR_COST_Q[f] for f in EVAL_FIELDS if not sc[f]["correcto"]),
         })
+
+    def accuracy(subset):
+        n = len(subset)
+        acc = {f"acc_{f}": round(sum(sc[f]["correcto"] for _, sc in subset) / n, 4) for f in EVAL_FIELDS}
+        return {"n": n, "acc_campos": round(sum(acc.values()) / len(acc), 4),
+                "exactitud_documento": round(sum(all(sc[f]["correcto"] for f in EVAL_FIELDS)
+                                                 for _, sc in subset) / n, 4), **acc}
+
+    metricas = {"modelo": model_dir.name, "restringido": a.constrained, "conjunto": name,
+                "latencia_media_s": round(float(np.mean([p["latency_s"] for p in preds])), 3),
+                "todas": accuracy(scores)}
+    for fmt in sorted({f for f, _ in scores}):
+        metricas[fmt] = accuracy([x for x in scores if x[0] == fmt])
 
     curve = pd.DataFrame([{"umbral": t, **value_per_1000(rows, t)} for t in THRESHOLDS])
     curve.to_csv(out / "curva.csv", index=False)
@@ -135,6 +151,12 @@ def main(a):
     fig.tight_layout()
     fig.savefig(out / "curva.png", dpi=130)
 
+    metricas["umbral_optimo"] = float(best["umbral"])
+    metricas["en_umbral_optimo"] = {k: round(float(v), 4) for k, v in best.items()}
+    metricas["sin_umbral_solo_validaciones"] = {k: round(float(v), 4) for k, v in curve.iloc[0].items()}
+    (out / "metricas.json").write_text(json.dumps(metricas, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(json.dumps(metricas["todas"], ensure_ascii=False))
+
     print(f"\nn={len(rows)}  latencia media {np.mean([p['latency_s'] for p in preds]):.2f} s")
     print(curve.round(3).to_string(index=False))
     print(f"\nUmbral óptimo: {best['umbral']:.2f} -> ahorro Q{best['ahorro_neto_Q_1000']:.0f} por 1,000 facturas, "
@@ -150,4 +172,5 @@ if __name__ == "__main__":
     g.add_argument("--gt", help="CSV de ground truth con fotos reales")
     p.add_argument("--split", default="test")
     p.add_argument("--model", default="", help="carpeta del modelo (por defecto DONUT_MODEL_DIR)")
+    p.add_argument("--constrained", action="store_true", help="decodificación restringida al formato")
     main(p.parse_args())

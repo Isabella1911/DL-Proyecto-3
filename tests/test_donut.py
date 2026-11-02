@@ -38,3 +38,15 @@ def test_num_letras():
     assert num_letras(100) == "CIEN QUETZALES CON 00/100"
     assert num_letras(1234.5) == "MIL DOSCIENTOS TREINTA Y CUATRO QUETZALES CON 50/100"
     assert num_letras(962.19) == "NOVECIENTOS SESENTA Y DOS QUETZALES CON 19/100"
+
+
+def test_field_formats():
+    from src.donut import complete_ok, prefix_ok
+
+    assert prefix_ok("numero_autorizacion", "A02F865E-A1C4")
+    assert not prefix_ok("numero_autorizacion", "A02F865E-AIC4")  # I no es hexadecimal
+    assert not prefix_ok("numero_autorizacion", "016F6147-C2AF-4B90-A25D-5A72CE260FE11")
+    assert complete_ok("numero_autorizacion", "016F6147-C2AF-4B90-A25D-5A72CE260FE1")
+    assert prefix_ok("total", "12.") and complete_ok("total", "12.50") and not complete_ok("total", "12.5")
+    assert complete_ok("iva", "") and complete_ok("nit_receptor", "CF") and complete_ok("nit_emisor", "576937-K")
+    assert prefix_ok("fecha", "2026-1") and not prefix_ok("fecha", "26/10")

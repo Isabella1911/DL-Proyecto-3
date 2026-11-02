@@ -29,6 +29,9 @@ USD_TO_GTQ = float(os.getenv("USD_TO_GTQ", "7.7"))
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DONUT_MODEL_DIR = os.path.join(_ROOT, os.getenv("DONUT_MODEL_DIR", os.path.join("models", "donut-fel")))
 DONUT_MIN_CONF = float(os.getenv("DONUT_MIN_CONF", "0.6"))
+# Decodificación restringida al formato de cada campo (ver src/donut.py). Apagada por defecto:
+# ver la comparación de valor en RESULTADOS.md.
+DONUT_CONSTRAINED = os.getenv("DONUT_CONSTRAINED", "0") == "1"
 
 # Modelo de valor: costo de digitar una factura a mano y de revisarla.
 MANUAL_MINUTES_PER_INVOICE = float(os.getenv("MANUAL_MINUTES_PER_INVOICE", "2.0"))
