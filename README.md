@@ -106,6 +106,15 @@ Cuando haya fotos reales anotadas, se pueden sumar al entrenamiento con `--extra
 
 `models/donut-fel/logs/` queda con `steps.csv` (loss por paso), `epochs.csv` (loss y exactitud por campo en validación por época), `curvas.png` y `train_summary.json` (GPU, horas y memoria: costo de entrenamiento).
 
+### Curva de valor y umbral de operación
+
+```powershell
+python -m eval.threshold_curve --synth data/synth/val       # validación sintética
+python -m eval.threshold_curve --gt eval/ground_truth.csv   # fotos reales (split=test)
+```
+
+Para cada umbral de confianza calcula el % de facturas que van a revisión, el % con errores que se escapan y el ahorro neto en quetzales por 1,000 facturas. Elige el umbral que maximiza el ahorro y repite el cálculo con los supuestos movidos ±20 % y ±50 % (costo de errores, salario y minutos de digitación). Deja `curva.csv`, `sensibilidad.csv` y `curva.png` en `results/umbral_<modelo>_<conjunto>/`.
+
 **Limitación importante:** el modelo se entrenó solo con facturas sintéticas. Su desempeño real se mide con `eval/run_eval.py` sobre fotos reales (`split=test`), y es de esperar que sea menor que en la validación sintética. Esa diferencia es una iteración del informe (sintético → sintético + fotos reales).
 
 ## Estructura
@@ -122,7 +131,7 @@ src/metrics.py          Métricas técnicas y de negocio
 src/schema.py           Campos y costo de error por campo
 src/config.py           Modelos, precios y parámetros (desde .env)
 prompts/                Prompts versionados (system, v1_zero_shot, v2_fel_rules, ocr_wrapper)
-eval/                   Ground truth, instrucciones de anotación y run_eval.py
+eval/                   Ground truth, instrucciones de anotación, run_eval.py y threshold_curve.py
 results/                iterations.csv y detalle por corrida
 train/synth_fel.py      Generador de facturas FEL sintéticas
 train/train_donut.py    Fine-tuning de Donut (curvas y costo de entrenamiento en logs/)

@@ -6,6 +6,9 @@ train/synth_fel.py; con --extra se agregan fotos reales anotadas (eval/ground_tr
 
     python -m train.train_donut --epochs 4 --out models/donut-fel
     python -m train.train_donut --smoke          # prueba rápida de que todo corre
+    # Iteración 2: parte del modelo anterior y agrega otro lote sintético
+    python -m train.train_donut --base models/donut-fel --more-train data/synth2/train \
+        --epochs 2 --lr 2e-5 --out models/donut-fel-it2
 
 Guarda en --out el mejor modelo según la exactitud de campos en validación, y en
 --out/logs: steps.csv (loss por paso), epochs.csv (métricas por época), curvas.png y
@@ -167,7 +170,8 @@ def main(a):
     tok = processor.tokenizer
     tok.add_special_tokens({"additional_special_tokens": [TASK_TOKEN] + FIELD_TOKENS})
 
-    model = VisionEncoderDecoderModel.from_pretrained(a.base)
+    # float32 explícito: el modelo guardado está en bf16 y entrenar en bf16 puro es inestable
+    model = VisionEncoderDecoderModel.from_pretrained(a.base, dtype=torch.float32)
     model.decoder.resize_token_embeddings(len(tok))
     model.config.encoder.image_size = [a.height, a.width]
     model.config.decoder_start_token_id = tok.convert_tokens_to_ids(TASK_TOKEN)
@@ -183,6 +187,8 @@ def main(a):
 
     limit = 64 if a.smoke else 0
     train_recs = load_synth(Path(a.data) / "train", limit)
+    for d in a.more_train:
+        train_recs += load_synth(Path(d), limit)
     val_recs = load_synth(Path(a.data) / "val", 16 if a.smoke else 0)
     if a.extra:
         real = load_real(Path(a.extra))
@@ -270,6 +276,7 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--base", default=BASE_MODEL)
     p.add_argument("--data", default=str(ROOT / "data" / "synth"))
+    p.add_argument("--more-train", nargs="*", default=[], help="más carpetas con metadata.jsonl")
     p.add_argument("--extra", default="", help="CSV con fotos reales anotadas (split=train)")
     p.add_argument("--extra-repeat", type=int, default=10)
     p.add_argument("--out", default=str(ROOT / "models" / "donut-fel"))

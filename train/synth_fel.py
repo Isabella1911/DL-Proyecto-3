@@ -375,15 +375,15 @@ def render_carta(inv: dict, rng: random.Random) -> Image.Image:
     y = 50
     titulo = inv["comercial"] if inv["show_comercial"] else inv["razon"]
     tf = F(True, 1.4)
-    while tf.getlength(titulo.upper()) > 550 and tf.size > 14:
+    while tf.getlength(titulo.upper()) > 480 and tf.size > 14:
         tf = ImageFont.truetype(tf.path, tf.size - 1)
     d.text((50, y), titulo.upper(), font=tf, fill=0)
     y += int(s * 2)
     for t in ([inv["razon"]] if inv["show_comercial"] else []) + [f"NIT: {g['nit_emisor']}", inv["direccion"],
                                                                    f"Teléfono: {inv['tel']}"]:
-        d.text((50, y), t[:52], font=F(), fill=0)
+        d.text((50, y), t[:44], font=F(), fill=0)
         y += int(s * 1.4)
-    bx = 620
+    bx = 560
     d.rectangle([bx, 40, W - 40, 300], outline=0, width=2)
     yy = 52
     for t, b in [("FACTURA ELECTRÓNICA", True), (f"Serie: {g['serie']}", False),
@@ -391,7 +391,7 @@ def render_carta(inv: dict, rng: random.Random) -> Image.Image:
                  (g["numero_autorizacion"], False),
                  (f"Fecha de emisión: {fmt_fecha(inv['emision'], rng.randrange(6))}", False),
                  ("Fecha certificación: " + inv["certificacion"].strftime("%Y-%m-%dT%H:%M:%S"), False)]:
-        font = F(b, 0.85)
+        font = F(b, 0.95)
         while font.getlength(t) > W - 60 - bx and font.size > 10:
             font = ImageFont.truetype(font.path, font.size - 1)
         d.text((bx + 10, yy), t, font=font, fill=0)
@@ -439,7 +439,8 @@ def render_carta(inv: dict, rng: random.Random) -> Image.Image:
            font=F(k=0.85), fill=0)
     if rng.random() < 0.8:
         _qr(d, W - 200, y - 10, 6, rng)
-    return img.crop((0, 0, W, min(H, y + 220)))
+    # Hoja carta completa, vertical, como se imprime y se fotografía en la realidad
+    return img
 
 
 # --------------------------------------------------------------- "foto" simulada
@@ -494,7 +495,7 @@ def photograph(doc: Image.Image, rng: random.Random, max_side: int = 1600) -> Im
     else:
         fill = rng.uniform(0.7, 0.97)
         # ancho / alto de la foto: retrato para tickets, más ancho para facturas carta
-        aspect = min(1.34, max(0.5625, w / h * rng.uniform(1.0, 1.5)))
+        aspect = min(1.34, max(0.5625, w / h * rng.uniform(1.0, 1.2)))
         if h / w > 1 / aspect:
             ph = int(h / fill)
             pw = int(ph * aspect)
