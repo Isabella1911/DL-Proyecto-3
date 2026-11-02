@@ -92,7 +92,7 @@ El componente de deep learning entrenado por el grupo es un **Donut** (encoder S
 
 - **Punto de partida:** `naver-clova-ix/donut-base-finetuned-cord-v2`, que ya fue ajustado con 800 recibos (CORD). Se agregan 19 tokens nuevos (`<s_fel>` y uno de apertura y cierre por campo) y se ajusta todo el modelo.
 - **Función de pérdida:** entropía cruzada token a token sobre la secuencia de campos (teacher forcing).
-- **Confianza por campo:** la probabilidad mínima de los tokens de cada campo. Si es menor a `DONUT_MIN_CONF` (0.9 por defecto, el óptimo de la curva de valor), el campo se marca como dudoso; con la política de revisión "estricta" la factura va a revisión humana. Ese umbral es un punto de operación del modelo de valor.
+- **Confianza por campo:** la probabilidad mínima de los tokens de cada campo. Si es menor a `DONUT_MIN_CONF` (0.97 por defecto, el óptimo de la curva de valor del modelo final), el campo se marca como dudoso; con la política de revisión "estricta" la factura va a revisión humana. Ese umbral es un punto de operación del modelo de valor.
 
 ### Datos de entrenamiento: facturas sintéticas
 
