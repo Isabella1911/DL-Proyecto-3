@@ -1,0 +1,12 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+cache/*
+!cache/.gitkeep
+# Las fotos pueden tener datos personales: subir solo las anonimizadas.
+eval/images/*
+!eval/images/.gitkeep
+results/*/

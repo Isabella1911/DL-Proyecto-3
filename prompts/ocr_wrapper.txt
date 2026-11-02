@@ -1,0 +1,5 @@
+A continuación está el texto que un OCR leyó de la foto de la factura. Puede tener errores de lectura y el orden de las líneas puede no ser perfecto.
+
+<texto_ocr>
+{ocr_text}
+</texto_ocr>

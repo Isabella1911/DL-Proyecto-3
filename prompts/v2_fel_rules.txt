@@ -1,0 +1,23 @@
+Extrae los campos de esta factura FEL y responde solo con este objeto JSON:
+
+{
+  "nit_emisor": "NIT del comercio que emite la factura, con guion antes del dígito verificador, p. ej. \"1234567-8\"",
+  "nit_receptor": "NIT del cliente, o \"CF\" si dice C/F o Consumidor Final",
+  "nombre_emisor": "nombre comercial o razón social del emisor",
+  "fecha": "fecha de emisión en formato AAAA-MM-DD",
+  "serie": "serie del DTE (8 caracteres hexadecimales)",
+  "numero_dte": "número del DTE, solo dígitos",
+  "numero_autorizacion": "número de autorización completo, formato UUID XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX en mayúsculas",
+  "iva": número decimal con el monto de IVA en quetzales o null,
+  "total": número decimal con el total a pagar en quetzales,
+  "ilegibles": ["lista de campos que no pudiste leer con seguridad"]
+}
+
+Reglas:
+- El NIT del emisor suele estar en el encabezado, junto al nombre del comercio. El NIT del receptor aparece junto a "NIT", "NIT cliente" o "Comprador". No los confundas.
+- La serie son los primeros 8 caracteres del número de autorización. Úsalo para confirmar tu lectura.
+- La fecha de emisión no es la fecha de certificación ni de vencimiento. Si solo hay una fecha, úsala.
+- El total es el monto final a pagar (incluye IVA). No uses el subtotal, el efectivo recibido ni el cambio.
+- Si el IVA no aparece desglosado, devuelve null; no lo calcules.
+- Montos sin "Q" ni comas de miles.
+- En el UUID, distingue con cuidado 0/O, 1/I, 8/B, 5/S: solo puede contener 0-9 y A-F.

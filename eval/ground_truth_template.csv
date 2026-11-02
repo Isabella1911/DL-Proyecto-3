@@ -1,0 +1,2 @@
+id,archivo_imagen,split,comercio,categoria,nit_emisor,nit_receptor,nombre_emisor,fecha,serie,numero_dte,numero_autorizacion,iva,total,calidad_foto,anotado_por,validado_por,notas
+fel_001,images/fel_001.jpg,test,Supermercado Ejemplo,supermercado,576937-K,CF,Supermercado Ejemplo S.A.,2026-10-24,5C2F81A0,1048268073,5C2F81A0-3E7B-4D29-A1C4-9F0E2B7D6A13,10.71,100.00,buena,isa,,ejemplo: borrar esta fila

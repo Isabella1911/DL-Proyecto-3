@@ -1,0 +1,2 @@
+Extrae estos campos de la factura y responde solo con un objeto JSON:
+nit_emisor, nit_receptor, nombre_emisor, fecha, serie, numero_dte, numero_autorizacion, iva, total, ilegibles.
