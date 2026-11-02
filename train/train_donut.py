@@ -90,7 +90,7 @@ def load_real(csv_path: Path, splits=("train",)):
 
 
 @torch.no_grad()
-def evaluate(model, processor, loader, records, device, max_gen: int):
+def evaluate(model, processor, loader, records, device, max_gen: int, gen_batch: int = 8):
     """Loss de validación + exactitud por campo generando con el modelo."""
     model.eval()
     losses = []
@@ -109,8 +109,8 @@ def evaluate(model, processor, loader, records, device, max_gen: int):
     sub = records[:max_gen]
     correct = {f: 0 for f in EVAL_FIELDS}
     docs_ok = 0
-    for i in range(0, len(sub), 8):
-        chunk = sub[i:i + 8]
+    for i in range(0, len(sub), gen_batch):
+        chunk = sub[i:i + gen_batch]
         imgs = [Image.open(p).convert("RGB") for p, _ in chunk]
         with torch.autocast("cuda", dtype=torch.bfloat16):
             outs = wrapper.predict_images(imgs)
@@ -239,7 +239,7 @@ def main(a):
             acc_loss = 0.0
 
         t_val = time.time()
-        m = evaluate(model, processor, val_dl, val_recs, device, a.val_gen)
+        m = evaluate(model, processor, val_dl, val_recs, device, a.val_gen, a.gen_batch)
         row = {"epoca": epoch, "step": step, "min_entrenamiento": round((time.time() - t_ep) / 60, 2),
                "min_validacion": round((time.time() - t_val) / 60, 2), **{k: round(v, 4) for k, v in m.items()}}
         epochs_rows.append(row)
@@ -289,6 +289,7 @@ if __name__ == "__main__":
     p.add_argument("--width", type=int, default=960)
     p.add_argument("--workers", type=int, default=4)
     p.add_argument("--val-gen", type=int, default=300, help="facturas de validación a generar por época")
+    p.add_argument("--gen-batch", type=int, default=8, help="lote de generación en validación (menos = menos VRAM)")
     p.add_argument("--no-grad-ckpt", dest="grad_ckpt", action="store_false")
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--smoke", action="store_true")

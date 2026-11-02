@@ -539,10 +539,10 @@ def photograph(doc: Image.Image, rng: random.Random, max_side: int = 1600) -> Im
 # ---------------------------------------------------------------------- dataset
 
 def make_sample(args):
-    idx, seed, out_dir = args
+    idx, seed, out_dir, carta_frac = args
     rng = random.Random(seed)
     inv = make_invoice(rng)
-    layout = "carta" if rng.random() < 0.2 else "ticket"
+    layout = "carta" if rng.random() < carta_frac else "ticket"
     doc = render_carta(inv, rng) if layout == "carta" else render_ticket(inv, rng)
     img = photograph(doc, rng)
     name = f"synth_{idx:05d}.jpg"
@@ -551,10 +551,10 @@ def make_sample(args):
             "meta": {"layout": layout, "categoria": inv["cat"], "seed": seed}}
 
 
-def build(out: Path, split: str, n: int, base_seed: int, workers: int):
+def build(out: Path, split: str, n: int, base_seed: int, workers: int, carta_frac: float = 0.2):
     d = out / split
     (d / "images").mkdir(parents=True, exist_ok=True)
-    jobs = [(i, base_seed * 1_000_003 + i, d) for i in range(n)]
+    jobs = [(i, base_seed * 1_000_003 + i, d, carta_frac) for i in range(n)]
     with Pool(workers) as pool, (d / "metadata.jsonl").open("w", encoding="utf-8") as fh:
         for k, rec in enumerate(pool.imap(make_sample, jobs, chunksize=8), 1):
             fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
@@ -569,8 +569,10 @@ if __name__ == "__main__":
     p.add_argument("--n-val", type=int, default=300)
     p.add_argument("--workers", type=int, default=8)
     p.add_argument("--seed", type=int, default=2026)
+    p.add_argument("--carta-frac", type=float, default=0.2, help="proporción de facturas tamaño carta")
     a = p.parse_args()
     out = Path(a.out)
-    build(out, "train", a.n_train, a.seed, a.workers)
+    build(out, "train", a.n_train, a.seed, a.workers, a.carta_frac)
+    # Validación siempre con 20 % carta (la proporción "real" supuesta), para comparar iteraciones
     build(out, "val", a.n_val, a.seed + 1, a.workers)  # semilla distinta: sin facturas repetidas
     print(f"Listo: {out}")
