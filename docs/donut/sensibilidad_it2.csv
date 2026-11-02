@@ -1,0 +1,10 @@
+escenario,umbral_optimo,ahorro_optimo_Q_1000,ahorro_con_umbral_base_Q_1000
+base,0.9,705.0,705.0
+costo errores -50%,0.75,715.8,705.0
+costo errores +50%,0.9,705.0,705.0
+costo errores -20%,0.9,705.0,705.0
+costo errores +20%,0.9,705.0,705.0
+salario -20%,0.9,564.0,564.0
+salario +20%,0.9,846.0,846.0
+min. digitación -50%,0.9,205.0,205.0
+min. digitación +50%,0.9,1205.0,1205.0

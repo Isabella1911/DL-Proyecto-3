@@ -1,0 +1,18 @@
+{
+ "modelo_base": "models/donut-fel-it1",
+ "gpu": "NVIDIA GeForce RTX 3070 Laptop GPU",
+ "horas": 1.734,
+ "vram_max_gb": 6.89,
+ "epocas": 2,
+ "pasos": 1000,
+ "batch_efectivo": 8,
+ "lr": 2e-05,
+ "imagen": [
+  1280,
+  960
+ ],
+ "n_train": 4000,
+ "n_val": 300,
+ "mejor_acc_campos": 0.9291666666666667,
+ "parametros_M": 201.1
+}

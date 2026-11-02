@@ -27,7 +27,7 @@ MAX_MB = 15
 
 METHOD_LABELS = {
     "donut": "Modelo propio Donut (local, sin internet)",
-    "vision": "LLM de visión (recomendado)",
+    "vision": "LLM de visión (Gemini u OpenAI, requiere internet)",
     "ocr_llm": "OCR + LLM de texto",
     "baseline": "OCR + reglas (sin LLM)",
 }

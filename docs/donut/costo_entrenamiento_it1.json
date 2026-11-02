@@ -1,0 +1,18 @@
+{
+ "modelo_base": "naver-clova-ix/donut-base-finetuned-cord-v2",
+ "gpu": "NVIDIA GeForce RTX 3070 Laptop GPU",
+ "horas": 3.357,
+ "vram_max_gb": 6.89,
+ "epocas": 4,
+ "pasos": 2000,
+ "batch_efectivo": 8,
+ "lr": 4e-05,
+ "imagen": [
+  1280,
+  960
+ ],
+ "n_train": 4000,
+ "n_val": 300,
+ "mejor_acc_campos": 0.9145833333333333,
+ "parametros_M": 201.1
+}

@@ -1,0 +1,3 @@
+epoca,step,min_entrenamiento,min_validacion,val_loss,acc_campos,exactitud_documento,acc_nit_emisor,acc_nit_receptor,acc_fecha,acc_serie,acc_numero_dte,acc_numero_autorizacion,acc_iva,acc_total
+1,500,52.39,2.6,0.0465,0.9217,0.6067,0.9433,0.9933,0.98,0.87,0.9533,0.6533,0.99,0.99
+2,1000,51.56,2.5,0.0438,0.9292,0.6433,0.9467,1.0,0.99,0.8767,0.9533,0.6867,0.99,0.99

@@ -1,0 +1,7 @@
+modelo,decodificacion,conjunto_validacion,exactitud_campos,exactitud_documento,acc_numero_autorizacion,acc_nit_emisor,acc_total,documento_ticket,documento_carta,latencia_s_gpu,umbral_optimo,ahorro_Q_1000_umbral_optimo,pct_revision_umbral_optimo,pct_escapados_umbral_optimo,ahorro_Q_1000_solo_validaciones,pct_escapados_solo_validaciones
+donut-fel-it1,libre,synth2_val,0.9229,0.6033,0.68,0.9467,0.99,0.7042,0.2,0.219,0.9,702.5,0.7933,0.0,-272.5,0.07
+donut-fel-it1,libre,synth_val,0.9158,0.6233,0.6733,0.94,1.0,0.7149,0.1765,0.217,0.94,682.5,0.8467,0.0,117.1,0.0667
+donut-fel-it2,restringida,synth2_val,0.925,0.62,0.6667,0.9433,0.9867,0.7083,0.2667,0.257,0.95,678.8,0.8567,0.0,-1181.2,0.1633
+donut-fel-it2,restringida,synth_val,0.9133,0.62,0.66,0.9533,0.99,0.6948,0.2549,0.26,0.99,640.0,0.96,0.0,-963.3,0.1667
+donut-fel-it2,libre,synth2_val,0.9304,0.65,0.6933,0.95,0.99,0.7417,0.2833,0.218,0.9,705.0,0.7867,0.0,-365.4,0.0867
+donut-fel-it2,libre,synth_val,0.9158,0.6267,0.67,0.95,0.9967,0.7068,0.2353,0.219,0.92,651.2,0.7967,0.0033,-75.4,0.0833

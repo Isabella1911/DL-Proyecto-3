@@ -28,7 +28,7 @@ USD_TO_GTQ = float(os.getenv("USD_TO_GTQ", "7.7"))
 # marca como dudoso y la factura va a revisión con la política "estricta".
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DONUT_MODEL_DIR = os.path.join(_ROOT, os.getenv("DONUT_MODEL_DIR", os.path.join("models", "donut-fel")))
-DONUT_MIN_CONF = float(os.getenv("DONUT_MIN_CONF", "0.6"))
+DONUT_MIN_CONF = float(os.getenv("DONUT_MIN_CONF", "0.9"))  # óptimo según docs/donut/curva_valor_it2.png
 # Decodificación restringida al formato de cada campo (ver src/donut.py). Apagada por defecto:
 # ver la comparación de valor en RESULTADOS.md.
 DONUT_CONSTRAINED = os.getenv("DONUT_CONSTRAINED", "0") == "1"
