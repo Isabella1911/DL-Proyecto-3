@@ -26,6 +26,7 @@ CACHE.mkdir(exist_ok=True)
 MAX_MB = 15
 
 METHOD_LABELS = {
+    "donut": "Modelo propio Donut (local, sin internet)",
     "vision": "LLM de visión (recomendado)",
     "ocr_llm": "OCR + LLM de texto",
     "baseline": "OCR + reglas (sin LLM)",
@@ -42,10 +43,11 @@ def cache_key(data: bytes, method: str, prompt: str, model: str) -> Path:
 
 
 def run_extraction(data: bytes, method: str, prompt: str, offline: bool) -> Extraction:
-    key = cache_key(data, method, prompt, "-" if method == "baseline" else config.model_name())
+    model = {"baseline": "-", "donut": config.DONUT_MODEL_DIR}.get(method, config.model_name())
+    key = cache_key(data, method, prompt, model)
     if key.exists():
         return Extraction(**json.loads(key.read_text(encoding="utf-8")))
-    if offline:
+    if offline and method != "donut":  # Donut corre local: no necesita internet
         return Extraction(method, {f: None for f in FIELDS},
                           error="Modo sin internet: esta foto no está en caché.")
     ex = extract(method, data, prompt=prompt)
@@ -62,6 +64,8 @@ def friendly_error(err: str) -> str:
         return "Se alcanzó el límite de solicitudes de la API. Espera unos segundos e intenta de nuevo."
     if "tesseract" in e:
         return "Tesseract no está instalado o no se encontró. Usa el método 'LLM de visión'."
+    if "no hay un modelo donut" in e:
+        return err
     if "json" in e:
         return "El modelo devolvió una respuesta con formato inválido. Intenta de nuevo."
     return err
@@ -73,7 +77,7 @@ with st.sidebar:
     st.header("Configuración")
     method = st.radio("Método", list(METHOD_LABELS), format_func=METHOD_LABELS.get)
     prompt = st.selectbox("Versión del prompt", ["v2_fel_rules", "v1_zero_shot"],
-                          disabled=method == "baseline")
+                          disabled=method in ("baseline", "donut"))
     offline = st.toggle("Modo sin internet (usar caché)", value=False,
                         help="Para la feria: responde solo con fotos procesadas antes.")
     st.caption(f"Modelo: `{config.model_name()}` · proveedor `{config.PROVIDER}`")

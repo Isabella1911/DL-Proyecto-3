@@ -2,7 +2,8 @@
 
 - baseline: Tesseract + expresiones regulares (sin LLM)
 - ocr_llm:  Tesseract + LLM de texto que estructura el resultado
-- vision:   LLM multimodal que lee la foto directamente (versión final)
+- vision:   LLM multimodal que lee la foto directamente
+- donut:    modelo Donut propio, ajustado con facturas FEL (train/train_donut.py); corre local
 """
 
 import json
@@ -17,7 +18,7 @@ from .schema import empty_result
 from .validate import autocorrect
 
 PROMPTS_DIR = Path(__file__).resolve().parent.parent / "prompts"
-METHODS = ["baseline", "ocr_llm", "vision"]
+METHODS = ["baseline", "ocr_llm", "vision", "donut"]
 
 
 @dataclass
@@ -168,7 +169,21 @@ def vision(img_bytes: bytes, prompt: str = "v2_fel_rules", model=None, provider=
                            model, provider)
 
 
-EXTRACTORS = {"baseline": baseline, "ocr_llm": ocr_llm, "vision": vision}
+# ----------------------------------------------------------------------- Donut
+
+def donut(img_bytes: bytes, **_) -> Extraction:
+    """Modelo propio. Los campos con confianza < DONUT_MIN_CONF se reportan como ilegibles."""
+    from . import donut as D
+
+    model = D.get_model()
+    out = model.predict_images([image.load(img_bytes)])[0]
+    dudosos = [f for f, c in out.confidence.items() if c < config.DONUT_MIN_CONF]
+    fields, ileg = _clean({**out.fields, "ilegibles": dudosos})
+    raw = out.sequence + "\n" + json.dumps({"confianza": out.confidence}, ensure_ascii=False)
+    return Extraction("donut", fields, ileg, out.latency_s, model=model.name, prompt="-", raw=raw)
+
+
+EXTRACTORS = {"baseline": baseline, "ocr_llm": ocr_llm, "vision": vision, "donut": donut}
 
 
 def extract(method: str, img_bytes: bytes, **kw) -> Extraction:

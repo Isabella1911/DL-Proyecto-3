@@ -24,6 +24,12 @@ PRICES_USD_PER_M = {
 }
 USD_TO_GTQ = float(os.getenv("USD_TO_GTQ", "7.7"))
 
+# Modelo Donut propio (train/train_donut.py). Un campo con confianza menor al umbral se
+# marca como dudoso y la factura va a revisión con la política "estricta".
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DONUT_MODEL_DIR = os.path.join(_ROOT, os.getenv("DONUT_MODEL_DIR", os.path.join("models", "donut-fel")))
+DONUT_MIN_CONF = float(os.getenv("DONUT_MIN_CONF", "0.6"))
+
 # Modelo de valor: costo de digitar una factura a mano y de revisarla.
 MANUAL_MINUTES_PER_INVOICE = float(os.getenv("MANUAL_MINUTES_PER_INVOICE", "2.0"))
 REVIEW_MINUTES_PER_INVOICE = float(os.getenv("REVIEW_MINUTES_PER_INVOICE", "0.75"))

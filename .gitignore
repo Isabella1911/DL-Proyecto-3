@@ -10,3 +10,6 @@ cache/*
 eval/images/*
 !eval/images/.gitkeep
 results/*/
+# Datos sintéticos (se regeneran con train/synth_fel.py) y pesos del modelo (muy pesados para git)
+data/
+models/

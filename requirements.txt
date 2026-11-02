@@ -7,3 +7,10 @@ pandas>=2.0
 openpyxl>=3.1
 python-dotenv>=1.0
 pytest>=8.0
+numpy>=1.26
+matplotlib>=3.8
+# Modelo Donut. Con GPU NVIDIA instalar torch primero desde https://pytorch.org (versión CUDA).
+torch>=2.4
+transformers>=4.45
+sentencepiece>=0.2
+protobuf>=4.25

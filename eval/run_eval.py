@@ -5,6 +5,7 @@ Ejemplos:
     python -m eval.run_eval --tag it2_vision_v1 --methods vision --prompt v1_zero_shot
     python -m eval.run_eval --tag it3_vision_v2 --methods vision ocr_llm --prompt v2_fel_rules
     python -m eval.run_eval --tag it4_vision_fewshot --methods vision --fewshot 2
+    python -m eval.run_eval --tag it6_donut --methods donut
 
 Cada corrida agrega una fila por método a results/iterations.csv (la tabla de la sección 2.5)
 y guarda las respuestas en results/<tag>/ para no volver a pagar la API si se repite.
@@ -100,7 +101,8 @@ def run(args):
         pd.DataFrame(detail).to_csv(out_dir / f"detalle_{method}.csv", index=False, encoding="utf-8-sig")
         s = summarize(rows)
         model = "-" if method == "baseline" else ",".join(sorted(m for m in models if m)) or "-"
-        prompt = "-" if method == "baseline" else args.prompt + (f"+{args.fewshot}shot" if args.fewshot else "")
+        prompt = ("-" if method in ("baseline", "donut")
+                  else args.prompt + (f"+{args.fewshot}shot" if args.fewshot else ""))
         summaries.append({"fecha": datetime.now().isoformat(timespec="minutes"), "iteracion": args.tag,
                           "metodo": method, "modelo": model, "prompt": prompt, "split": args.split,
                           "notas": args.notes, **s})
@@ -123,7 +125,7 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--tag", required=True, help="nombre de la iteración, p. ej. it3_vision_v2")
     p.add_argument("--methods", nargs="+", default=["baseline", "ocr_llm", "vision"],
-                   choices=["baseline", "ocr_llm", "vision"])
+                   choices=["baseline", "ocr_llm", "vision", "donut"])
     p.add_argument("--prompt", default="v2_fel_rules")
     p.add_argument("--model", default=None)
     p.add_argument("--provider", default=None, choices=["gemini", "openai"])

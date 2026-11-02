@@ -1,0 +1,5 @@
+Fuentes libres incluidas para que el generador produzca las mismas imágenes en cualquier computadora:
+- DejaVu Sans / DejaVu Sans Mono: licencia de DejaVu Fonts (libre, derivada de Bitstream Vera).
+- Liberation Sans / Liberation Mono: SIL Open Font License 1.1.
+- GNU FreeMono: GPLv3 con excepción de fuentes.
+- Go Mono: licencia BSD de The Go Authors.
